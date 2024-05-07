@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include <utilities.hpp>
+#include <capstone.hpp>
 
 #include <elfio/elf_types.hpp>
 #include <elfio/elfio.hpp>
@@ -53,7 +54,7 @@ std::pair<uint64_t, uint64_t> get_begin_end_idx_on_dynsym(
 }
 
 uint64_t dynsym_idx_to_relaplt_idx( const ELFIO::elfio& elf_reader,
-                                   uint64_t            dynsym_idx ) noexcept
+                                    uint64_t            dynsym_idx ) noexcept
 {
     // get the index of the .rela.plt section
     uint64_t relaplt_idx = 0;
@@ -138,6 +139,42 @@ get_begin_end_addr( const ELFIO::elfio& elf_reader ) noexcept
              plt_base_addr + alignment * ( end_relaplt_idx + 1 ) };
 }
 
+// Function to fetch the address range of VMPilot signatures
+std::pair<uint64_t, uint64_t> fetch_address_range( const ELFIO::elfio& reader )
+{
+    const auto [begin_addr, end_addr] = get_begin_end_addr( reader );
+    if ( begin_addr == 0 || end_addr == 0 ) {
+        std::cerr << "Error: Could not find the VMPilot signatures"
+                  << std::endl;
+        return { 0, 0 };
+    }
+
+    return { begin_addr, end_addr };
+}
+
+/**
+ * Retrieves the contents of the ".text" section from the given ELF file.
+ * 
+ * @param elf_reader The ELF file reader object.
+ * @return A vector containing the contents of the ".text" section.
+ */
+std::vector<uint8_t> get_text_section( const ELFIO::elfio& elf_reader )
+{
+    ELFIO::elfio reader;
+
+    std::vector<uint8_t> text_section;
+    for ( const auto& sec : elf_reader.sections ) {
+        if ( sec->get_name() == ".text" ) {
+            text_section.resize( sec->get_size() );
+            std::memcpy( text_section.data(), sec->get_data(),
+                         sec->get_size() );
+            break;
+        }
+    }
+
+    return text_section;
+}
+
 int main( int argc, char** argv )
 {
     // the target file is given from argc argv
@@ -148,23 +185,29 @@ int main( int argc, char** argv )
         return 1;
     }
 
-    ELFIO::elfio reader;
-    // load the ELF file
-    if ( !reader.load( argv[1] ) ) {
-        printf( "File %s is not found or it is not an ELF file\n", argv[1] );
+    const std::string file_name = argv[1];
+    ELFIO::elfio      reader;
+    if ( !reader.load( file_name ) ) {
+        std::cerr << "File " << file_name
+                  << " is not found or it is not an ELF file" << std::endl;
         return 1;
     }
 
-    // get the begin and end address of the VMPilot signatures
-    const auto [begin_addr, end_addr] = get_begin_end_addr( reader );
-    if ( begin_addr == 0 || end_addr == 0 ) {
-        std::cerr << "Error: Could not find the VMPilot signatures"
-                  << std::endl;
-        return 1;
+    // step 1: get the address range of the VMPilot signatures
+    {
+        const auto [begin_addr, end_addr] = fetch_address_range( reader );
+        std::cout << "Begin address: " << std::hex << begin_addr << std::endl;
+        std::cout << "End address: " << std::hex << end_addr << std::endl;
     }
 
-    std::cout << "Begin address: " << std::hex << begin_addr << std::endl;
-    std::cout << "End address: " << std::hex << end_addr << std::endl;
+    // step 2: disassemble the .text section
+    std::vector<uint8_t> text_section = get_text_section( reader );
+    {
+        auto cs    = Capstone::Capstone();
+        auto insns = cs.disasm( text_section );
+        for ( auto& insn : insns )
+            std::cout << insn.mnemonic << " " << insn.op_str << std::endl;
+    }
 
     return 0;
 }

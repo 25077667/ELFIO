@@ -34,6 +34,7 @@ configure_file(${version_header} ${CMAKE_CURRENT_BINARY_DIR}/elfio_version.hpp.c
 project(elfio VERSION ${version} LANGUAGES C CXX)
 
 include(GNUInstallDirs)
+include(cmake/CPM.cmake)
 
 # Create a header only CMake target for elfio
 add_library(elfio INTERFACE)
