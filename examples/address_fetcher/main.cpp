@@ -52,12 +52,13 @@ std::pair<uint64_t, uint64_t> get_begin_end_idx_on_dynsym(
     return { vmp_begin_idx, vmp_end_idx };
 }
 
-uint64_t dynsym_idx_to_relplt_idx( const ELFIO::elfio& elf_reader,
+uint64_t dynsym_idx_to_relaplt_idx( const ELFIO::elfio& elf_reader,
                                    uint64_t            dynsym_idx ) noexcept
 {
-    uint64_t relplt_idx = 0;
+    // get the index of the .rela.plt section
+    uint64_t relaplt_idx = 0;
     for ( const auto& sec : elf_reader.sections ) {
-        if ( ELFIO::SHT_REL != sec->get_type() )
+        if ( ELFIO::SHT_RELA != sec->get_type() )
             continue;
 
         ELFIO::relocation_section_accessor rels( elf_reader, sec.get() );
@@ -71,13 +72,13 @@ uint64_t dynsym_idx_to_relplt_idx( const ELFIO::elfio& elf_reader,
             rels.get_entry( i, offset, symbol, type, addend );
 
             if ( symbol == dynsym_idx ) {
-                relplt_idx = i;
+                relaplt_idx = i;
                 break;
             }
         }
     }
 
-    return relplt_idx;
+    return relaplt_idx;
 }
 
 /**
@@ -110,11 +111,11 @@ get_begin_end_addr( const ELFIO::elfio& elf_reader ) noexcept
     // get the index on .rel.plt section, which is the index of the .plt section
     // if there is an entry with index k on the .rel.plt section, which Info is vmp_begin_idx<a_type_byte>
     // than the index of the .plt section is k + 1
-    uint64_t begin_relplt_idx =
-        dynsym_idx_to_relplt_idx( elf_reader, begin_dynsym_idx );
-    uint64_t end_relplt_idx =
-        dynsym_idx_to_relplt_idx( elf_reader, end_dynsym_idx );
-    if ( begin_relplt_idx == -1 || end_relplt_idx == -1 ) {
+    uint64_t begin_relaplt_idx =
+        dynsym_idx_to_relaplt_idx( elf_reader, begin_dynsym_idx );
+    uint64_t end_relaplt_idx =
+        dynsym_idx_to_relaplt_idx( elf_reader, end_dynsym_idx );
+    if ( begin_relaplt_idx == -1 || end_relaplt_idx == -1 ) {
         return { 0, 0 };
     }
 
@@ -133,8 +134,8 @@ get_begin_end_addr( const ELFIO::elfio& elf_reader ) noexcept
     }
 
     // return plt + alignment + offset
-    return { plt_base_addr + alignment * ( begin_relplt_idx + 1 ),
-             plt_base_addr + alignment * ( end_relplt_idx + 1 ) };
+    return { plt_base_addr + alignment * ( begin_relaplt_idx + 1 ),
+             plt_base_addr + alignment * ( end_relaplt_idx + 1 ) };
 }
 
 int main( int argc, char** argv )
