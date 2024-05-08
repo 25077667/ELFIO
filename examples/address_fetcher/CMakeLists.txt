@@ -1,7 +1,7 @@
 CPMAddPackage(
     NAME capstone-cpp
     GITHUB_REPOSITORY "25077667/capstone-cpp"
-    GIT_TAG "0.1.4"
+    GIT_TAG "0.1.5"
 )
 
 add_executable(address_fetcher main.cpp utilities.cpp)
