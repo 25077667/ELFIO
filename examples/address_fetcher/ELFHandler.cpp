@@ -17,6 +17,7 @@ struct ELFHandler::Impl
     std::unordered_map<std::string, SectionViewer> section_table;
     uint64_t                                       vmp_begin_addr = -1;
     uint64_t                                       vmp_end_addr   = -1;
+    uint64_t                                       text_base_addr = -1;
 };
 
 std::unique_ptr<ELFHandler::Impl>
@@ -63,6 +64,22 @@ std::vector<uint8_t> ELFHandler::getTextSection() noexcept
         return {};
     }
     return chunk;
+}
+
+uint64_t ELFHandler::getTextBaseAddr() noexcept
+{
+    if ( pImpl->text_base_addr == -1 ) {
+        const auto& text_section = pImpl->section_table.find( ".text" );
+        if ( text_section == pImpl->section_table.end() ) {
+            std::cerr << "Error: Could not find the .text section" << std::endl;
+            return -1;
+        }
+
+        pImpl->text_base_addr =
+            text_section->second.getSection()->get_address();
+    }
+
+    return pImpl->text_base_addr;
 }
 
 uint64_t ELFHandler::getEntryIndex( const std::string& signature ) noexcept

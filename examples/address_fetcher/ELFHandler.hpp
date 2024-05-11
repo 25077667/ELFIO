@@ -18,6 +18,7 @@ class ELFHandler
 
     std::pair<uint64_t, uint64_t> getBeginEndAddr() noexcept;
     std::vector<uint8_t>          getTextSection() noexcept;
+    uint64_t                      getTextBaseAddr() noexcept;
 
   private:
     struct Impl;
