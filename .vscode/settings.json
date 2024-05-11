@@ -73,7 +73,21 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp",
-        "compare": "cpp"
+        "compare": "cpp",
+        "any": "cpp",
+        "charconv": "cpp",
+        "concepts": "cpp",
+        "condition_variable": "cpp",
+        "source_location": "cpp",
+        "format": "cpp",
+        "future": "cpp",
+        "mutex": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "span": "cpp",
+        "stop_token": "cpp",
+        "text_encoding": "cpp",
+        "valarray": "cpp"
     },
     "svn.ignoreMissingSvnWarning": true,
     "editor.tokenColorCustomizations": {
