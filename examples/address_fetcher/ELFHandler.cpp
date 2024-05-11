@@ -123,7 +123,11 @@ uint64_t ELFHandler::getEntryIndex( const std::string& signature ) noexcept
 
 uint64_t ELFHandler::getRelapltIdx( uint64_t dynsym_idx ) noexcept
 {
-    const auto& relaplt = pImpl->section_table.find( ".rela.plt" );
+    // 32-bit is .rel.plt, 64-bit is .rela.plt
+    static const char* relaplt_name[] = { ".rel.plt", ".rela.plt" };
+    const int& is_64_bit = pImpl->reader.get_class() == ELFIO::ELFCLASS64;
+
+    const auto& relaplt = pImpl->section_table.find( relaplt_name[is_64_bit] );
     if ( relaplt == pImpl->section_table.end() ) {
         return -1;
     }
